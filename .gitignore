@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.next/
+.turbo/
+*.tsbuildinfo
+.env
+.env.local
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.ruff_cache/
+uploads/
+data/
+*.db

@@ -1,0 +1,23 @@
+# PolicyGuard API — pinned runtime dependencies
+# Generated from pyproject.toml for CI and Docker compatibility.
+# Keep in sync with [project.dependencies] in pyproject.toml.
+
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.12
+sqlalchemy[asyncio]>=2.0.36
+alembic>=1.14.0
+asyncpg>=0.30.0
+chromadb>=0.5.23
+openai>=1.57.0
+anthropic>=0.39.0
+crewai>=0.86.0
+crewai-tools>=0.14.0
+pymupdf>=1.25.0
+pydantic>=2.10.0
+pydantic-settings>=2.7.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+slowapi>=0.1.9
+httpx>=0.28.0
+aiosqlite>=0.20.0
