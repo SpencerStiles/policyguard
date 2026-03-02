@@ -4,13 +4,22 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import * as api from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 export default function DashboardPage() {
   const [clients, setClients] = useState<api.ClientListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.listClients().then(setClients).catch(console.error).finally(() => setLoading(false));
+    api
+      .listClients()
+      .then(setClients)
+      .catch((err) => {
+        logger.error('Failed to load clients', { error: String(err) });
+        setError('Failed to load dashboard data. Is the API server running?');
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const totalPolicies = clients.reduce((sum, c) => sum + c.policy_count, 0);
@@ -21,6 +30,12 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="mt-1 text-sm text-gray-500">Overview of your PolicyGuard workspace</p>
       </div>
+
+      {error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">

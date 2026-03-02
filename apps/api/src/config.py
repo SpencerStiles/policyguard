@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     )
 
     # --- Database -----------------------------------------------------------
-    DATABASE_URL: str = "sqlite+aiosqlite:///./data/policyguard.db"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/policyguard"
 
     # --- LLM providers ------------------------------------------------------
     OPENAI_API_KEY: str = ""

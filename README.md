@@ -2,7 +2,7 @@
 
 **AI-powered insurance policy analysis.** Upload a policy PDF, get instant analysis of coverage gaps, conflicts, and actionable recommendations.
 
-[**Request a Demo →**](https://cal.com/spencerstiles) | [Live Demo](https://policyguard.spencerstiles.dev)
+[**Request a Demo →**](https://cal.com/spencerstiles) | [Live Demo](https://policyguard.spencerstiles.com)
 
 ---
 

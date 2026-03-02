@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import * as api from '@/lib/api';
 import { formatDate, severityColor, severityDot, statusColor } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 import { scoreToSignal, evidenceToSources } from '@/lib/coplayground-bridge';
 import { ConfidenceMeter } from '@coplayground/react';
 import { SourceBadge } from '@coplayground/react';
@@ -16,10 +17,18 @@ export default function AnalysisDetailPage() {
 
   const [analysis, setAnalysis] = useState<api.Analysis | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'gaps' | 'conflicts' | 'recommendations'>('gaps');
 
   useEffect(() => {
-    api.getAnalysis(analysisId).then(setAnalysis).catch(console.error).finally(() => setLoading(false));
+    api
+      .getAnalysis(analysisId)
+      .then(setAnalysis)
+      .catch((err) => {
+        logger.error('Failed to load analysis', { analysisId, error: String(err) });
+        setError('Failed to load analysis details.');
+      })
+      .finally(() => setLoading(false));
   }, [analysisId]);
 
   useEffect(() => {
@@ -28,6 +37,8 @@ export default function AnalysisDetailPage() {
       api.getAnalysis(analysisId).then((a) => {
         setAnalysis(a);
         if (a.status !== 'running') clearInterval(interval);
+      }).catch((err) => {
+        logger.warn('Polling analysis failed', { analysisId, error: String(err) });
       });
     }, 3000);
     return () => clearInterval(interval);
@@ -37,6 +48,16 @@ export default function AnalysisDetailPage() {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="py-12">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
       </div>
     );
   }

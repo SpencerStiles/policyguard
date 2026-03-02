@@ -4,16 +4,26 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import * as api from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<api.ClientListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ name: '', industry: '', description: '', contact_email: '' });
   const [saving, setSaving] = useState(false);
 
   const load = () => {
-    api.listClients().then(setClients).catch(console.error).finally(() => setLoading(false));
+    setError(null);
+    api
+      .listClients()
+      .then(setClients)
+      .catch((err) => {
+        logger.error('Failed to load clients', { error: String(err) });
+        setError('Failed to load clients. Is the API server running?');
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { load(); }, []);
@@ -21,13 +31,15 @@ export default function ClientsPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setError(null);
     try {
       await api.createClient(formData);
       setFormData({ name: '', industry: '', description: '', contact_email: '' });
       setShowForm(false);
       load();
     } catch (err) {
-      console.error(err);
+      logger.error('Failed to create client', { error: String(err) });
+      setError('Failed to create client. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -44,6 +56,12 @@ export default function ClientsPage() {
           {showForm ? 'Cancel' : '+ New Client'}
         </button>
       </div>
+
+      {error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       {/* Create Form */}
       {showForm && (

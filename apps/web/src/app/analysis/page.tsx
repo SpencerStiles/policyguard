@@ -4,25 +4,39 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import * as api from '@/lib/api';
 import { formatDate, statusColor } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 export default function AnalysisListPage() {
   const [clients, setClients] = useState<api.ClientListItem[]>([]);
   const [selectedClient, setSelectedClient] = useState<string>('');
   const [analyses, setAnalyses] = useState<api.AnalysisListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api.listClients().then((c) => {
       setClients(c);
       if (c.length > 0) setSelectedClient(c[0].id);
       setLoading(false);
-    }).catch(console.error);
+    }).catch((err) => {
+      logger.error('Failed to load clients', { error: String(err) });
+      setError('Failed to load clients. Is the API server running?');
+      setLoading(false);
+    });
   }, []);
 
   useEffect(() => {
     if (!selectedClient) return;
     setLoading(true);
-    api.listAnalyses(selectedClient).then(setAnalyses).catch(console.error).finally(() => setLoading(false));
+    setError(null);
+    api
+      .listAnalyses(selectedClient)
+      .then(setAnalyses)
+      .catch((err) => {
+        logger.error('Failed to load analyses', { clientId: selectedClient, error: String(err) });
+        setError('Failed to load analyses.');
+      })
+      .finally(() => setLoading(false));
   }, [selectedClient]);
 
   return (
@@ -33,6 +47,12 @@ export default function AnalysisListPage() {
           <p className="mt-1 text-sm text-gray-500">View coverage gap and conflict analyses</p>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       <div className="mb-6">
         <label className="label">Select Client</label>

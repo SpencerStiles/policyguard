@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import * as api from '@/lib/api';
 import { formatDate, formatFileSize, statusColor } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 export default function PoliciesPage() {
   const [clients, setClients] = useState<api.ClientListItem[]>([]);
   const [selectedClient, setSelectedClient] = useState<string>('');
   const [policies, setPolicies] = useState<api.Policy[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api.listClients().then((c) => {
@@ -18,13 +20,25 @@ export default function PoliciesPage() {
         setSelectedClient(c[0].id);
       }
       setLoading(false);
-    }).catch(console.error);
+    }).catch((err) => {
+      logger.error('Failed to load clients', { error: String(err) });
+      setError('Failed to load clients. Is the API server running?');
+      setLoading(false);
+    });
   }, []);
 
   useEffect(() => {
     if (!selectedClient) return;
     setLoading(true);
-    api.listPolicies(selectedClient).then(setPolicies).catch(console.error).finally(() => setLoading(false));
+    setError(null);
+    api
+      .listPolicies(selectedClient)
+      .then(setPolicies)
+      .catch((err) => {
+        logger.error('Failed to load policies', { clientId: selectedClient, error: String(err) });
+        setError('Failed to load policies.');
+      })
+      .finally(() => setLoading(false));
   }, [selectedClient]);
 
   return (
@@ -35,6 +49,12 @@ export default function PoliciesPage() {
           <p className="mt-1 text-sm text-gray-500">View and manage uploaded policy documents</p>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       {/* Client selector */}
       <div className="mb-6">

@@ -5,9 +5,8 @@ from sqlalchemy.orm import DeclarativeBase
 
 from src.config import settings
 
-# For development, use SQLite; for production, swap to PostgreSQL.
-# The config default is PostgreSQL, but we fall back to SQLite if the
-# DATABASE_URL starts with "sqlite".
+# Default config targets PostgreSQL (asyncpg). SQLite (aiosqlite) is also
+# supported for quick local development if DATABASE_URL starts with "sqlite".
 _url = settings.DATABASE_URL
 if _url.startswith("sqlite"):
     engine = create_async_engine(_url, echo=False, connect_args={"check_same_thread": False})

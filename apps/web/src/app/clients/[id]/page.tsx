@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import * as api from '@/lib/api';
 import { formatDate, formatFileSize, statusColor, formatCurrency } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 export default function ClientDetailPage() {
   const params = useParams();
@@ -14,11 +15,13 @@ export default function ClientDetailPage() {
   const [policies, setPolicies] = useState<api.Policy[]>([]);
   const [analyses, setAnalyses] = useState<api.AnalysisListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [analysisTitle, setAnalysisTitle] = useState('');
   const [showAnalysisForm, setShowAnalysisForm] = useState(false);
 
   const load = useCallback(async () => {
+    setError(null);
     try {
       const [c, p, a] = await Promise.all([
         api.getClient(clientId),
@@ -29,7 +32,8 @@ export default function ClientDetailPage() {
       setPolicies(p);
       setAnalyses(a);
     } catch (err) {
-      console.error(err);
+      logger.error('Failed to load client details', { clientId, error: String(err) });
+      setError('Failed to load client data. Is the API server running?');
     } finally {
       setLoading(false);
     }
@@ -41,11 +45,13 @@ export default function ClientDetailPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    setError(null);
     try {
       await api.uploadPolicy(clientId, file);
       load();
     } catch (err) {
-      console.error(err);
+      logger.error('Failed to upload policy', { clientId, error: String(err) });
+      setError('Failed to upload policy. Please try again.');
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -54,6 +60,7 @@ export default function ClientDetailPage() {
 
   const handleCreateAnalysis = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     try {
       await api.createAnalysis({
         client_id: clientId,
@@ -64,7 +71,8 @@ export default function ClientDetailPage() {
       setShowAnalysisForm(false);
       load();
     } catch (err) {
-      console.error(err);
+      logger.error('Failed to create analysis', { clientId, error: String(err) });
+      setError('Failed to start analysis. Please try again.');
     }
   };
 
@@ -82,6 +90,12 @@ export default function ClientDetailPage() {
 
   return (
     <div>
+      {error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>

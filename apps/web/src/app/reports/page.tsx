@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import * as api from '@/lib/api';
+import { logger } from '@/lib/logger';
 
 export default function ReportsPage() {
   return (
@@ -24,12 +25,16 @@ function ReportsContent() {
   const [report, setReport] = useState<any>(null);
   const [reportFormat, setReportFormat] = useState<'json' | 'markdown'>('json');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api.listClients().then((c) => {
       setClients(c);
       if (c.length > 0 && !selectedClient) setSelectedClient(c[0].id);
-    }).catch(console.error);
+    }).catch((err) => {
+      logger.error('Failed to load clients for reports', { error: String(err) });
+      setError('Failed to load clients. Is the API server running?');
+    });
   }, []);
 
   useEffect(() => {
@@ -39,18 +44,23 @@ function ReportsContent() {
       if (analysisIdParam && a.some((x) => x.id === analysisIdParam)) {
         setSelectedAnalysis(analysisIdParam);
       }
-    }).catch(console.error);
+    }).catch((err) => {
+      logger.error('Failed to load analyses for reports', { clientId: selectedClient, error: String(err) });
+      setError('Failed to load analyses.');
+    });
   }, [selectedClient, analysisIdParam]);
 
   const handleGenerate = async () => {
     if (!selectedAnalysis) return;
     setLoading(true);
     setReport(null);
+    setError(null);
     try {
       const data = await api.getReport(selectedAnalysis, reportFormat);
       setReport(data);
     } catch (err) {
-      console.error(err);
+      logger.error('Failed to generate report', { analysisId: selectedAnalysis, error: String(err) });
+      setError('Failed to generate report. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -62,6 +72,12 @@ function ReportsContent() {
         <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
         <p className="mt-1 text-sm text-gray-500">Generate analysis reports for clients</p>
       </div>
+
+      {error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       <div className="card p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Generate Report</h2>
