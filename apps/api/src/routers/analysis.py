@@ -1,7 +1,5 @@
 """Analysis endpoints — run gap/conflict/recommendation analysis."""
 
-import asyncio
-import json
 import logging
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -36,8 +34,6 @@ def _get_domain_data() -> dict:
     or configurable domain packages. For now we import the insurance package."""
     try:
         # This data is also available as a JSON export for the Python backend
-        from pathlib import Path
-        import importlib
         # We'll serve a simplified version
         return {
             "coverageTypes": _load_coverage_types(),

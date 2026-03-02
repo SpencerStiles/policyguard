@@ -1,7 +1,6 @@
 """Policy document upload endpoints."""
 
 import logging
-import shutil
 import uuid
 from pathlib import Path
 

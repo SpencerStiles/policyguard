@@ -8,8 +8,8 @@ import json
 import logging
 from typing import Any
 
-from openai import AsyncOpenAI
 from anthropic import AsyncAnthropic
+from openai import AsyncOpenAI
 
 from src.config import settings
 

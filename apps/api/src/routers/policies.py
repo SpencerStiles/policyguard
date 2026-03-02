@@ -77,7 +77,6 @@ async def reprocess_policy(
     db: AsyncSession = Depends(get_db),
 ):
     """Re-trigger processing for a policy (e.g., after a parsing error)."""
-    from fastapi import BackgroundTasks
 
     policy = await db.get(Policy, policy_id)
     if not policy:
@@ -88,8 +87,9 @@ async def reprocess_policy(
     await db.refresh(policy)
 
     # Import here to avoid circular dependency
-    from src.routers.upload import _process_policy_background
     import asyncio
+
+    from src.routers.upload import _process_policy_background
     asyncio.create_task(_process_policy_background(policy_id))
 
     return policy

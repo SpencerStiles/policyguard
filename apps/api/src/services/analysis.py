@@ -6,7 +6,7 @@ domain knowledge to produce a full policy program analysis.
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +20,7 @@ from src.models.models import (
     Recommendation,
 )
 from src.services import embeddings, llm, vectorstore
-from src.services.pdf_parser import ParsedDocument, chunk_document, parse_pdf
+from src.services.pdf_parser import chunk_document, parse_pdf
 
 logger = logging.getLogger("policyguard.analysis")
 
@@ -491,7 +491,7 @@ async def run_full_analysis(
         analysis.status = "completed"
         analysis.overall_score = overall_score
         analysis.summary = summary
-        analysis.completed_at = datetime.now(timezone.utc)
+        analysis.completed_at = datetime.now(UTC)
         await db.commit()
 
         logger.info(
