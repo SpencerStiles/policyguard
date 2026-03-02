@@ -47,6 +47,10 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "SIM"]
+ignore = [
+    "B008",  # FastAPI Depends() in function defaults — intentional DI pattern
+    "E501",  # Line too long — log messages and long strings are acceptable
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

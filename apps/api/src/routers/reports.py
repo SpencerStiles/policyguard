@@ -1,6 +1,5 @@
 """Report generation endpoints."""
 
-import json
 import logging
 from datetime import datetime
 
@@ -113,12 +112,12 @@ def _generate_json_report(analysis: Analysis) -> dict:
 def _generate_markdown_report(analysis: Analysis) -> str:
     """Generate a Markdown-formatted report."""
     lines = [
-        f"# PolicyGuard Analysis Report",
+        "# PolicyGuard Analysis Report",
         f"## {analysis.title}",
-        f"",
+        "",
         f"**Generated:** {datetime.utcnow().strftime('%B %d, %Y')}",
         f"**Overall Score:** {analysis.overall_score}/100" if analysis.overall_score else "",
-        f"",
+        "",
     ]
 
     if analysis.summary:
@@ -138,7 +137,6 @@ def _generate_markdown_report(analysis: Analysis) -> str:
             "",
         ])
         for g in sorted(analysis.gaps, key=lambda x: _severity_order(x.severity)):
-            severity_emoji = {"critical": "!!!", "high": "!!", "medium": "!", "low": ""}.get(g.severity, "")
             lines.extend([
                 f"### [{g.severity.upper()}] {g.title}",
                 "",

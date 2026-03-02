@@ -9,7 +9,7 @@ Provides:
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -51,7 +51,7 @@ _REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 def _create_token(data: dict, expires_delta: timedelta) -> str:
     payload = data.copy()
-    payload["exp"] = datetime.now(timezone.utc) + expires_delta
+    payload["exp"] = datetime.now(UTC) + expires_delta
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
 
@@ -81,8 +81,8 @@ def decode_token(token: str, expected_type: str = "access") -> str:
     )
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
-    except JWTError:
-        raise credentials_error
+    except JWTError as err:
+        raise credentials_error from err
 
     token_type: str | None = payload.get("type")
     if token_type != expected_type:
