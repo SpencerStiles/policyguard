@@ -30,8 +30,27 @@ jobs:
       - name: Type-check (mypy)
         run: mypy src/ --ignore-missing-imports
 
+  test-api:
+    name: Python API — pytest
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        working-directory: apps/api
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        working-directory: apps/api
+        run: python -m pytest tests/ -v
+
   frontend:
-    name: Frontend — type-check & build
+    name: Frontend — type-check, build & test
     runs-on: ubuntu-latest
 
     steps:
@@ -58,5 +77,11 @@ jobs:
       - name: Build
         working-directory: apps/web
         run: pnpm build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+
+      - name: Test
+        working-directory: apps/web
+        run: pnpm test
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8000
