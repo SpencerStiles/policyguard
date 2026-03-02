@@ -33,9 +33,6 @@ jobs:
   frontend:
     name: Frontend — type-check & build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/web
 
     steps:
       - uses: actions/checkout@v4
@@ -46,13 +43,20 @@ jobs:
         with:
           node-version: 20
 
+      # Install from monorepo root so workspace:* links resolve
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Build workspace packages first (coplayground-core, coplayground-react)
+      - name: Build workspace packages
+        run: pnpm --filter @coplayground/core build && pnpm --filter @coplayground/react build
+
       - name: Type-check
+        working-directory: apps/web
         run: pnpm exec tsc --noEmit
 
       - name: Build
+        working-directory: apps/web
         run: pnpm build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8000

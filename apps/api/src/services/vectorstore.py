@@ -65,8 +65,8 @@ async def add_chunks(
     collection.add(
         ids=ids,
         documents=documents,
-        embeddings=embeddings,
-        metadatas=metadatas,
+        embeddings=embeddings,  # type: ignore[arg-type]
+        metadatas=metadatas,  # type: ignore[arg-type]
     )
     logger.info("Added %d chunks to collection '%s' for policy %s", len(chunks), collection_name, policy_id)
 

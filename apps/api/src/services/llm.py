@@ -100,7 +100,12 @@ async def call_anthropic(
         messages=[{"role": "user", "content": user_prompt}],
     )
 
-    content = response.content[0].text if response.content else ""
+    # Extract text from the first content block (Anthropic returns a union of block types)
+    content = ""
+    if response.content:
+        block = response.content[0]
+        if hasattr(block, "text"):
+            content = block.text  # type: ignore[union-attr]
 
     try:
         return json.loads(content)
