@@ -25,7 +25,7 @@ async def test_domain_coverage_types(authed_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_domain_industry_profiles(authed_client: AsyncClient):
-    resp = await authed_client.get("/api/analysis/domain/profiles")
+    resp = await authed_client.get("/api/analysis/domain/industry-profiles")
     assert resp.status_code == 200
     data = resp.json()
     assert isinstance(data, list)

@@ -82,5 +82,5 @@ async def sample_client(authed_client: AsyncClient):
         "description": "A test software company",
         "contact_email": "info@acme.example.com",
     })
-    assert resp.status_code == 200
+    assert resp.status_code == 201
     return resp.json()

@@ -10,7 +10,7 @@ async def test_create_analysis(authed_client: AsyncClient, sample_client: dict):
         "client_id": client_id,
         "title": "Q1 2025 Coverage Review",
     })
-    assert resp.status_code == 200
+    assert resp.status_code == 201
     data = resp.json()
     assert data["client_id"] == client_id
     assert data["status"] in ("pending", "running", "completed", "failed")
@@ -26,7 +26,7 @@ async def test_get_analysis(authed_client: AsyncClient, sample_client: dict):
         "client_id": client_id,
         "title": "Test Analysis",
     })
-    assert create_resp.status_code == 200
+    assert create_resp.status_code == 201
     analysis_id = create_resp.json()["id"]
 
     # Fetch

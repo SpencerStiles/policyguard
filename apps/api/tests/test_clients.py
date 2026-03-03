@@ -19,7 +19,7 @@ async def test_create_client(authed_client: AsyncClient):
         "contact_email": "test@example.com",
     }
     resp = await authed_client.post("/api/clients", json=payload)
-    assert resp.status_code == 200
+    assert resp.status_code == 201
     data = resp.json()
     assert data["name"] == "Test Insurance Co"
     assert data["industry"] == "Professional Services"
