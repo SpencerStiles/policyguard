@@ -5,15 +5,15 @@ from httpx import AsyncClient
 
 @pytest.mark.asyncio
 async def test_health(client: AsyncClient):
-    resp = await client.get("/health")
+    resp = await client.get("/api/health")
     assert resp.status_code == 200
     body = resp.json()
-    assert body.get("status") == "ok"
+    assert body.get("status") == "healthy"
 
 
 @pytest.mark.asyncio
-async def test_domain_coverage_types(client: AsyncClient):
-    resp = await client.get("/api/analysis/domain/coverage-types")
+async def test_domain_coverage_types(authed_client: AsyncClient):
+    resp = await authed_client.get("/api/analysis/domain/coverage-types")
     assert resp.status_code == 200
     data = resp.json()
     assert isinstance(data, list)
@@ -24,8 +24,8 @@ async def test_domain_coverage_types(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_domain_industry_profiles(client: AsyncClient):
-    resp = await client.get("/api/analysis/domain/profiles")
+async def test_domain_industry_profiles(authed_client: AsyncClient):
+    resp = await authed_client.get("/api/analysis/domain/profiles")
     assert resp.status_code == 200
     data = resp.json()
     assert isinstance(data, list)
@@ -33,8 +33,8 @@ async def test_domain_industry_profiles(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_domain_gap_patterns(client: AsyncClient):
-    resp = await client.get("/api/analysis/domain/gap-patterns")
+async def test_domain_gap_patterns(authed_client: AsyncClient):
+    resp = await authed_client.get("/api/analysis/domain/gap-patterns")
     assert resp.status_code == 200
     data = resp.json()
     assert isinstance(data, list)

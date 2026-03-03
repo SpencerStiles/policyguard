@@ -16,7 +16,9 @@ os.environ.setdefault("CHROMA_PERSIST_DIR", "/tmp/policyguard_test_chroma")
 os.environ.setdefault("JWT_SECRET", "test-secret-do-not-use-in-production")
 
 from src.main import app
+from src.core.auth import create_access_token, hash_password
 from src.db.database import Base, get_db
+from src.models.models import User
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -49,9 +51,32 @@ async def client(db_session: AsyncSession):
 
 
 @pytest_asyncio.fixture
-async def sample_client(client: AsyncClient):
-    """Create and return a sample client record."""
-    resp = await client.post("/api/clients", json={
+async def auth_headers(db_session: AsyncSession) -> dict[str, str]:
+    """Create a test user and return Authorization headers with a valid JWT."""
+    user = User(
+        email="testuser@example.com",
+        hashed_password=hash_password("testpassword123"),
+        full_name="Test User",
+    )
+    db_session.add(user)
+    await db_session.flush()
+    await db_session.refresh(user)
+
+    token = create_access_token(user.id)
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest_asyncio.fixture
+async def authed_client(client: AsyncClient, auth_headers: dict[str, str]):
+    """HTTP test client that sends auth headers with every request."""
+    client.headers.update(auth_headers)
+    yield client
+
+
+@pytest_asyncio.fixture
+async def sample_client(authed_client: AsyncClient):
+    """Create and return a sample client record (authenticated)."""
+    resp = await authed_client.post("/api/clients", json={
         "name": "Acme Corp",
         "industry": "Technology / SaaS",
         "description": "A test software company",
