@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
-process.env.NODE_ENV = 'test'
-process.env.NEXT_PUBLIC_API_URL = 'http://localhost:8000'
+vi.stubEnv('NODE_ENV', 'test')
+vi.stubEnv('NEXT_PUBLIC_API_URL', 'http://localhost:8000')
 
 describe('logger', () => {
   it('creates a logger with expected methods', async () => {

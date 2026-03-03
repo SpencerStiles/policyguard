@@ -25,9 +25,12 @@ async def lifespan(app: FastAPI):
     Path(settings.CHROMA_PERSIST_DIR).mkdir(parents=True, exist_ok=True)
     Path(settings.DOMAIN_DATA_DIR).mkdir(parents=True, exist_ok=True)
 
-    # Initialise database tables
-    await init_db()
-    logger.info("Database initialised")
+    # Initialise database tables (non-fatal — app stays up for health checks)
+    try:
+        await init_db()
+        logger.info("Database initialised")
+    except Exception as exc:
+        logger.warning("Database initialisation failed — app will start without DB: %s", exc)
 
     yield
 

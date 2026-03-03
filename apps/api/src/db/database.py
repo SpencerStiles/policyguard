@@ -11,7 +11,13 @@ _url = settings.DATABASE_URL
 if _url.startswith("sqlite"):
     engine = create_async_engine(_url, echo=False, connect_args={"check_same_thread": False})
 else:
-    engine = create_async_engine(_url, echo=False, pool_pre_ping=True)
+    engine = create_async_engine(
+        _url,
+        echo=False,
+        pool_pre_ping=True,
+        pool_timeout=10,
+        connect_args={"timeout": 10},
+    )
 
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
