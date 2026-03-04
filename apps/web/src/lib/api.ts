@@ -9,24 +9,152 @@ const BASE = '/api';
 /** Default timeout for API requests (30 seconds — accommodates Render cold starts). */
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-async function request<T>(path: string, options?: RequestInit & { timeoutMs?: number }): Promise<T> {
-  const { timeoutMs = DEFAULT_TIMEOUT_MS, ...fetchOptions } = options ?? {};
+const TOKEN_KEY = 'pg_access_token';
+const REFRESH_KEY = 'pg_refresh_token';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string | null;
+  is_active: boolean;
+  is_superuser: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Auth API (raw fetch — not request() — to avoid circular refresh loops)
+// ---------------------------------------------------------------------------
+
+/** Exchange email + password for JWT tokens. Uses form-encoding (OAuth2 requirement). */
+export async function loginApi(email: string, password: string): Promise<TokenResponse> {
+  const body = new URLSearchParams({ username: email, password });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${BASE}/auth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(res.status === 401 ? 'Invalid email or password' : `Login failed: ${text}`);
+    }
+    return res.json();
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('Request timed out. The server may be warming up — please wait and try again.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Exchange a refresh token for new access + refresh tokens. */
+export async function refreshApi(refreshToken: string): Promise<TokenResponse> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const res = await fetch(`${BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error('Refresh failed');
+    return res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Fetch the current user's profile using an explicit token (used at login/restore time). */
+export async function getMeApi(token: string): Promise<UserProfile> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const res = await fetch(`${BASE}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error('Failed to fetch user profile');
+    return res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Core request helper (Bearer token injection + auto-refresh on 401)
+// ---------------------------------------------------------------------------
+
+async function request<T>(
+  path: string,
+  options?: RequestInit & { timeoutMs?: number; _isRetry?: boolean },
+): Promise<T> {
+  const { timeoutMs = DEFAULT_TIMEOUT_MS, _isRetry = false, ...fetchOptions } = options ?? {};
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
+  const token =
+    typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
+
   try {
     const res = await fetch(`${BASE}${path}`, {
-      headers: { 'Content-Type': 'application/json', ...fetchOptions.headers },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...fetchOptions.headers,
+      },
       signal: controller.signal,
       ...fetchOptions,
     });
+
+    // Auto-refresh on 401 (once)
+    if (res.status === 401 && !_isRetry) {
+      const storedRefresh =
+        typeof window !== 'undefined' ? localStorage.getItem(REFRESH_KEY) : null;
+      if (storedRefresh) {
+        try {
+          const tokens = await refreshApi(storedRefresh);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(TOKEN_KEY, tokens.access_token);
+            localStorage.setItem(REFRESH_KEY, tokens.refresh_token);
+          }
+          return request<T>(path, { ...options, _isRetry: true });
+        } catch {
+          // Refresh failed — clear session and redirect
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(REFRESH_KEY);
+            window.location.href = '/login';
+          }
+          throw new Error('Session expired. Please log in again.');
+        }
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(TOKEN_KEY);
+        window.location.href = '/login';
+      }
+      throw new Error('Please log in to continue.');
+    }
 
     if (!res.ok) {
       const body = await res.text();
       throw new Error(`API error ${res.status}: ${body}`);
     }
-
     if (res.status === 204) return undefined as T;
     return res.json();
   } catch (err) {
@@ -39,6 +167,22 @@ async function request<T>(path: string, options?: RequestInit & { timeoutMs?: nu
   } finally {
     clearTimeout(timer);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Auth API (uses request() — normal JSON endpoint)
+// ---------------------------------------------------------------------------
+
+/** Create a new user account. */
+export async function registerApi(data: {
+  email: string;
+  password: string;
+  full_name?: string;
+}): Promise<UserProfile> {
+  return request<UserProfile>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
 // ---------------------------------------------------------------------------
