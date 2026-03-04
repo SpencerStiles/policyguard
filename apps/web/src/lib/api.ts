@@ -6,19 +6,56 @@
 
 const BASE = '/api';
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    ...options,
-  });
+/** Default timeout for API requests (30 seconds — accommodates Render cold starts). */
+const DEFAULT_TIMEOUT_MS = 30_000;
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`API error ${res.status}: ${body}`);
+async function request<T>(path: string, options?: RequestInit & { timeoutMs?: number }): Promise<T> {
+  const { timeoutMs = DEFAULT_TIMEOUT_MS, ...fetchOptions } = options ?? {};
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(`${BASE}${path}`, {
+      headers: { 'Content-Type': 'application/json', ...fetchOptions.headers },
+      signal: controller.signal,
+      ...fetchOptions,
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`API error ${res.status}: ${body}`);
+    }
+
+    if (res.status === 204) return undefined as T;
+    return res.json();
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(
+        'Request timed out. The server may be warming up — please wait a moment and try again.',
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
+}
 
-  if (res.status === 204) return undefined as T;
-  return res.json();
+// ---------------------------------------------------------------------------
+// Health
+// ---------------------------------------------------------------------------
+
+/**
+ * Quick health check against `/api/health`.
+ * Returns `true` if the backend responds within 5 seconds, `false` otherwise.
+ */
+export async function checkHealth(): Promise<boolean> {
+  try {
+    await request<{ status: string }>('/health', { timeoutMs: 5_000 });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -125,17 +162,32 @@ export async function uploadPolicy(clientId: string, file: File): Promise<Policy
   const formData = new FormData();
   formData.append('file', file);
 
-  const res = await fetch(`${BASE}/upload/${clientId}`, {
-    method: 'POST',
-    body: formData,
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60_000); // 60s for uploads
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Upload error ${res.status}: ${body}`);
+  try {
+    const res = await fetch(`${BASE}/upload/${clientId}`, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Upload error ${res.status}: ${body}`);
+    }
+
+    return res.json();
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(
+        'Upload timed out. The server may be warming up — please wait a moment and try again.',
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-
-  return res.json();
 }
 
 // ---------------------------------------------------------------------------

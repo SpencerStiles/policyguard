@@ -47,7 +47,7 @@ export default function AnalysisDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent-600 border-t-transparent" />
       </div>
     );
   }
@@ -105,7 +105,7 @@ export default function AnalysisDetailPage() {
       {/* Running state */}
       {analysis.status === 'running' && (
         <div className="card p-6 mb-6 flex items-center gap-4">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent-600 border-t-transparent" />
           <div>
             <p className="text-sm font-medium text-gray-900">Analysis in progress...</p>
             <p className="text-xs text-gray-500">This may take a few minutes. The page will auto-refresh.</p>
@@ -138,7 +138,7 @@ export default function AnalysisDetailPage() {
           </div>
           <div className="card px-5 py-4">
             <p className="text-xs text-gray-500">Recommendations</p>
-            <p className="text-2xl font-bold text-brand-600">{analysis.recommendations?.length || 0}</p>
+            <p className="text-2xl font-bold text-accent-600">{analysis.recommendations?.length || 0}</p>
           </div>
         </div>
       )}
@@ -172,7 +172,7 @@ export default function AnalysisDetailPage() {
                 onClick={() => setActiveTab(tab.key)}
                 className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === tab.key
-                    ? 'border-brand-600 text-brand-600'
+                    ? 'border-accent-600 text-accent-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >

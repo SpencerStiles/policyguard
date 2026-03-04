@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Plus, Users, CheckCircle } from 'lucide-react';
 import * as api from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { logger } from '@/lib/logger';
@@ -13,6 +14,7 @@ export default function ClientsPage() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ name: '', industry: '', description: '', contact_email: '' });
   const [saving, setSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const load = () => {
     setError(null);
@@ -28,6 +30,13 @@ export default function ClientsPage() {
 
   useEffect(() => { load(); }, []);
 
+  // Auto-dismiss success message
+  useEffect(() => {
+    if (!successMessage) return;
+    const timer = setTimeout(() => setSuccessMessage(null), 3000);
+    return () => clearTimeout(timer);
+  }, [successMessage]);
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -36,10 +45,16 @@ export default function ClientsPage() {
       await api.createClient(formData);
       setFormData({ name: '', industry: '', description: '', contact_email: '' });
       setShowForm(false);
+      setSuccessMessage('Client created successfully');
       load();
     } catch (err) {
       logger.error('Failed to create client', { error: String(err) });
-      setError('Failed to create client. Please try again.');
+      const message = String(err);
+      if (message.includes('timed out') || message.includes('warming up')) {
+        setError('The server may be warming up. Please wait a moment and try again.');
+      } else {
+        setError('Failed to create client. Please try again.');
+      }
     } finally {
       setSaving(false);
     }
@@ -53,9 +68,22 @@ export default function ClientsPage() {
           <p className="mt-1 text-sm text-gray-500">Manage your insurance clients</p>
         </div>
         <button className="btn-primary" onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Cancel' : '+ New Client'}
+          {showForm ? 'Cancel' : (
+            <>
+              <Plus className="h-4 w-4" />
+              New Client
+            </>
+          )}
         </button>
       </div>
+
+      {/* Success Toast */}
+      {successMessage && (
+        <div className="mb-6 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          <CheckCircle className="h-4 w-4" />
+          {successMessage}
+        </div>
+      )}
 
       {error && (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -65,8 +93,17 @@ export default function ClientsPage() {
 
       {/* Create Form */}
       {showForm && (
-        <div className="card p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">New Client</h2>
+        <div className="card p-6 mb-6 relative">
+          {/* Loading Overlay */}
+          {saving && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-xl bg-white/80 backdrop-blur-sm">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent-600 border-t-transparent" />
+              <p className="mt-3 text-sm font-medium text-gray-600">Creating client...</p>
+            </div>
+          )}
+
+          <h2 className="text-lg font-semibold text-gray-900">New Client</h2>
+          <p className="mt-1 text-sm text-gray-500 mb-4">Add a new insurance client to your workspace</p>
           <form onSubmit={handleCreate} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="label">Name *</label>
@@ -131,11 +168,13 @@ export default function ClientsPage() {
         <div className="divide-y divide-gray-100">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent-600 border-t-transparent" />
             </div>
           ) : clients.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="text-sm text-gray-500">No clients yet. Create your first client to get started.</p>
+              <Users className="mx-auto h-10 w-10 text-gray-300" />
+              <h3 className="mt-3 text-sm font-medium text-gray-900">No clients yet</h3>
+              <p className="mt-1 text-sm text-gray-500">Create your first client to get started.</p>
             </div>
           ) : (
             clients.map((client) => (

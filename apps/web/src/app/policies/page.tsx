@@ -76,7 +76,7 @@ export default function PoliciesPage() {
         <div className="divide-y divide-gray-100">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent-600 border-t-transparent" />
             </div>
           ) : !selectedClient ? (
             <div className="py-12 text-center">
