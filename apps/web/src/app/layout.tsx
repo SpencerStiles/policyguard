@@ -1,28 +1,20 @@
 import type { Metadata } from 'next';
-import { Sidebar } from '@/components/sidebar';
+import { Inter } from 'next/font/google';
 import './globals.css';
+import { AuthProvider } from '@/contexts/auth';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'PolicyGuard AI',
-  description: 'AI-powered insurance policy analysis platform',
+  title: 'PolicyGuard',
+  description: 'AI-powered insurance policy analysis',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <main className="flex-1 overflow-auto">
-            <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-              {children}
-            </div>
-          </main>
-        </div>
+      <body className={`${inter.className} bg-stone-50`}>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );
