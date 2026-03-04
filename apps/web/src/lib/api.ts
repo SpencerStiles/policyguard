@@ -30,6 +30,9 @@ export interface UserProfile {
   is_superuser: boolean;
 }
 
+/** Shared promise lock so concurrent 401s only trigger one refresh. */
+let _refreshPromise: Promise<TokenResponse> | null = null;
+
 // ---------------------------------------------------------------------------
 // Auth API (raw fetch — not request() — to avoid circular refresh loops)
 // ---------------------------------------------------------------------------
@@ -74,6 +77,11 @@ export async function refreshApi(refreshToken: string): Promise<TokenResponse> {
     });
     if (!res.ok) throw new Error('Refresh failed');
     return res.json();
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('Token refresh timed out. Please log in again.');
+    }
+    throw err;
   } finally {
     clearTimeout(timer);
   }
@@ -90,6 +98,11 @@ export async function getMeApi(token: string): Promise<UserProfile> {
     });
     if (!res.ok) throw new Error('Failed to fetch user profile');
     return res.json();
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('Request timed out. The server may be warming up — please wait and try again.');
+    }
+    throw err;
   } finally {
     clearTimeout(timer);
   }
@@ -101,9 +114,10 @@ export async function getMeApi(token: string): Promise<UserProfile> {
 
 async function request<T>(
   path: string,
-  options?: RequestInit & { timeoutMs?: number; _isRetry?: boolean },
+  options?: RequestInit & { timeoutMs?: number },
+  _isRetry = false,
 ): Promise<T> {
-  const { timeoutMs = DEFAULT_TIMEOUT_MS, _isRetry = false, ...fetchOptions } = options ?? {};
+  const { timeoutMs = DEFAULT_TIMEOUT_MS, ...fetchOptions } = options ?? {};
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -128,12 +142,20 @@ async function request<T>(
         typeof window !== 'undefined' ? localStorage.getItem(REFRESH_KEY) : null;
       if (storedRefresh) {
         try {
-          const tokens = await refreshApi(storedRefresh);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem(TOKEN_KEY, tokens.access_token);
-            localStorage.setItem(REFRESH_KEY, tokens.refresh_token);
+          // Use a shared promise so concurrent 401s only refresh once
+          if (!_refreshPromise) {
+            _refreshPromise = refreshApi(storedRefresh).then((tokens) => {
+              if (typeof window !== 'undefined') {
+                localStorage.setItem(TOKEN_KEY, tokens.access_token);
+                localStorage.setItem(REFRESH_KEY, tokens.refresh_token);
+              }
+              return tokens;
+            }).finally(() => {
+              _refreshPromise = null;
+            });
           }
-          return request<T>(path, { ...options, _isRetry: true });
+          await _refreshPromise;
+          return request<T>(path, options, true);
         } catch {
           // Refresh failed — clear session and redirect
           if (typeof window !== 'undefined') {
