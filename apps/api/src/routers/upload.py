@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.config import settings
 from src.core.auth import get_current_user
 from src.db.database import get_db
-from src.models.models import Client, Policy
+from src.models.models import Client, Policy, User
 from src.schemas import PolicyOut
 from src.services.analysis import process_uploaded_policy
 
@@ -35,16 +35,16 @@ async def upload_policy(
     file: UploadFile,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Upload a policy PDF for a client.
 
     The file is saved to disk and a background task is spawned to parse
     and extract coverage data.
     """
-    # Validate client exists
-    client = await db.get(Client, client_id)
-    if not client:
-        raise HTTPException(status_code=404, detail="Client not found")
+    # Validate client exists and is owned by current user
+    from src.core.auth import verify_client_ownership
+    await verify_client_ownership(client_id, current_user.id, db)
 
     # Validate file type
     if file.content_type not in ALLOWED_MIME_TYPES:
