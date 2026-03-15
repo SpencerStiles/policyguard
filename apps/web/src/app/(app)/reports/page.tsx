@@ -2,13 +2,13 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import * as api from '@/lib/api';
 import { logger } from '@/lib/logger';
 
 export default function ReportsPage() {
   return (
-    <Suspense fallback={<div className="py-12 text-center text-gray-500">Loading...</div>}>
+    <Suspense fallback={<div className="py-12 text-center text-neutral-500">Loading...</div>}>
       <ReportsContent />
     </Suspense>
   );
@@ -68,19 +68,33 @@ function ReportsContent() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
-        <p className="mt-1 text-sm text-gray-500">Generate analysis reports for clients</p>
-      </div>
+      <motion.div
+        className="mb-8"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+      >
+        <h1 className="font-display text-3xl text-neutral-900">Reports</h1>
+        <p className="mt-1 text-sm text-neutral-500">Generate analysis reports for clients</p>
+      </motion.div>
 
       {error && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
           {error}
-        </div>
+        </motion.div>
       )}
 
-      <div className="card p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Generate Report</h2>
+      <motion.div
+        className="card p-6 mb-6"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 25, delay: 0.1 }}
+      >
+        <h2 className="text-base font-semibold text-neutral-900 mb-4">Generate Report</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className="label">Client</label>
@@ -121,46 +135,56 @@ function ReportsContent() {
                 <option value="json">JSON</option>
                 <option value="markdown">Markdown</option>
               </select>
-              <button
+              <motion.button
                 className="btn-primary"
                 onClick={handleGenerate}
                 disabled={!selectedAnalysis || loading}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               >
                 {loading ? 'Generating...' : 'Generate'}
-              </button>
+              </motion.button>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Report output */}
-      {report && (
-        <div className="card">
-          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-            <h2 className="text-lg font-semibold text-gray-900">Report Output</h2>
-            <button
-              className="btn-secondary text-xs"
-              onClick={() => {
-                const content = reportFormat === 'markdown' ? report.content : JSON.stringify(report, null, 2);
-                navigator.clipboard.writeText(content);
-              }}
-            >
-              Copy to Clipboard
-            </button>
-          </div>
-          <div className="p-6">
-            {reportFormat === 'markdown' ? (
-              <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono bg-gray-50 rounded-lg p-4 max-h-[600px] overflow-auto">
-                {report.content}
-              </pre>
-            ) : (
-              <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono bg-gray-50 rounded-lg p-4 max-h-[600px] overflow-auto">
-                {JSON.stringify(report, null, 2)}
-              </pre>
-            )}
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {report && (
+          <motion.div
+            className="card"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+          >
+            <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
+              <h2 className="text-base font-semibold text-neutral-900">Report Output</h2>
+              <motion.button
+                className="btn-secondary text-xs"
+                whileTap={{ scale: 0.97 }}
+                onClick={() => {
+                  const content = reportFormat === 'markdown' ? report.content : JSON.stringify(report, null, 2);
+                  navigator.clipboard.writeText(content);
+                }}
+              >
+                Copy to Clipboard
+              </motion.button>
+            </div>
+            <div className="p-6">
+              {reportFormat === 'markdown' ? (
+                <pre className="whitespace-pre-wrap text-sm text-neutral-800 font-mono bg-neutral-50 rounded-lg p-4 max-h-[600px] overflow-auto">
+                  {report.content}
+                </pre>
+              ) : (
+                <pre className="whitespace-pre-wrap text-sm text-neutral-800 font-mono bg-neutral-50 rounded-lg p-4 max-h-[600px] overflow-auto">
+                  {JSON.stringify(report, null, 2)}
+                </pre>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

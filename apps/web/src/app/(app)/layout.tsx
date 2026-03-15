@@ -6,7 +6,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <ProtectedRoute>
       <div className="flex h-screen overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto p-8">{children}</main>
+        {/* pt-14 on mobile to clear the fixed top bar */}
+        <main className="flex-1 overflow-y-auto p-8 pt-8 lg:pt-8 max-lg:pt-[calc(56px+2rem)]">
+          {children}
+        </main>
       </div>
     </ProtectedRoute>
   );

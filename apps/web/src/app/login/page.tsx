@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { Shield } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/auth';
 
 export default function LoginPage() {
@@ -27,27 +28,42 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-stone-50 px-4">
-      <div className="w-full max-w-md">
+      <motion.div
+        className="w-full max-w-md"
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+      >
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent-600">
+          <motion.div
+            className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-600"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 22, delay: 0.1 }}
+            style={{ boxShadow: '0 0 32px -4px rgba(39, 171, 131, 0.4)' }}
+          >
             <Shield className="h-7 w-7 text-white" />
-          </div>
-          <h1 className="mt-4 text-2xl font-bold text-gray-900">Sign in to PolicyGuard</h1>
-          <p className="mt-1 text-sm text-gray-500">AI-powered insurance policy analysis</p>
+          </motion.div>
+          <h1 className="mt-5 font-display text-3xl text-neutral-900">Sign in to PolicyGuard</h1>
+          <p className="mt-1.5 text-sm text-neutral-500">AI-powered insurance policy analysis</p>
         </div>
 
         {/* Card */}
         <div className="card px-8 py-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
                 {error}
-              </div>
+              </motion.div>
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-1">
                 Email address
               </label>
               <input
@@ -63,7 +79,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-neutral-700 mb-1">
                 Password
               </label>
               <input
@@ -78,10 +94,12 @@ export default function LoginPage() {
               />
             </div>
 
-            <button
+            <motion.button
               type="submit"
               disabled={loading}
               className="btn-primary w-full justify-center"
+              whileTap={{ scale: 0.97 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             >
               {loading ? (
                 <span className="flex items-center gap-2">
@@ -91,17 +109,17 @@ export default function LoginPage() {
               ) : (
                 'Sign in'
               )}
-            </button>
+            </motion.button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-500">
+          <p className="mt-6 text-center text-sm text-neutral-500">
             Don&apos;t have an account?{' '}
             <Link href="/register" className="font-medium text-accent-600 hover:text-accent-700">
               Create one free
             </Link>
           </p>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import * as api from '@/lib/api';
 import { formatDate, statusColor } from '@/lib/utils';
 import { logger } from '@/lib/logger';
+import { StaggerContainer, FadeUpItem } from '@/components/motion';
 
 export default function AnalysisListPage() {
   const [clients, setClients] = useState<api.ClientListItem[]>([]);
@@ -41,20 +43,34 @@ export default function AnalysisListPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <motion.div
+        className="flex items-center justify-between mb-8"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+      >
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analysis</h1>
-          <p className="mt-1 text-sm text-gray-500">View coverage gap and conflict analyses</p>
+          <h1 className="font-display text-3xl text-neutral-900">Analysis</h1>
+          <p className="mt-1 text-sm text-neutral-500">View coverage gap and conflict analyses</p>
         </div>
-      </div>
+      </motion.div>
 
       {error && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
           {error}
-        </div>
+        </motion.div>
       )}
 
-      <div className="mb-6">
+      <motion.div
+        className="mb-6"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 25, delay: 0.08 }}
+      >
         <label className="label">Select Client</label>
         <select
           className="input max-w-sm"
@@ -66,50 +82,58 @@ export default function AnalysisListPage() {
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
-      </div>
+      </motion.div>
 
-      <div className="card">
-        <div className="divide-y divide-gray-100">
+      <motion.div
+        className="card"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 25, delay: 0.15 }}
+      >
+        <div className="divide-y divide-neutral-100">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent-600 border-t-transparent" />
             </div>
           ) : !selectedClient ? (
             <div className="py-12 text-center">
-              <p className="text-sm text-gray-500">Select a client to view their analyses.</p>
+              <p className="text-sm text-neutral-500">Select a client to view their analyses.</p>
             </div>
           ) : analyses.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="text-sm text-gray-500">No analyses for this client.</p>
+              <p className="text-sm text-neutral-500">No analyses for this client.</p>
               <Link href={`/clients/${selectedClient}`} className="btn-primary mt-4 inline-flex">
                 Run Analysis
               </Link>
             </div>
           ) : (
-            analyses.map((a) => (
-              <Link
-                key={a.id}
-                href={`/analysis/${a.id}`}
-                className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
-              >
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{a.title}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{formatDate(a.created_at)}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {a.overall_score != null && (
-                    <span className="text-sm font-semibold text-gray-700">{a.overall_score}/100</span>
-                  )}
-                  <span className={`badge ${statusColor(a.status)}`}>{a.status}</span>
-                  <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </Link>
-            ))
+            <StaggerContainer delay={0.2}>
+              {analyses.map((a) => (
+                <FadeUpItem key={a.id}>
+                  <Link
+                    href={`/analysis/${a.id}`}
+                    className="flex items-center justify-between px-6 py-4 hover:bg-neutral-50 transition-colors"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-neutral-900">{a.title}</p>
+                      <p className="text-xs text-neutral-500 mt-0.5">{formatDate(a.created_at)}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {a.overall_score != null && (
+                        <span className="text-sm font-semibold tabular text-neutral-700">{a.overall_score}/100</span>
+                      )}
+                      <span className={`badge ${statusColor(a.status)}`}>{a.status}</span>
+                      <svg className="h-5 w-5 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </Link>
+                </FadeUpItem>
+              ))}
+            </StaggerContainer>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
