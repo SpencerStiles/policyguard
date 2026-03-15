@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.config import settings
 from src.core.auth import get_current_user, verify_client_ownership
 from src.db.database import get_db
-from src.models.models import Client, Policy, User
+from src.models.models import Policy, User
 from src.schemas import PolicyOut
 from src.services.analysis import process_uploaded_policy
 

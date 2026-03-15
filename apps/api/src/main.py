@@ -8,9 +8,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
+from sqlalchemy import text
 
 from src.config import settings
 from src.core.logging import get_logger, setup_logging
+from src.db.database import async_session as _async_session
 from src.db.database import init_db
 from src.routers import analysis, auth, clients, policies, reports, upload
 
@@ -69,11 +71,8 @@ app.include_router(analysis.router)
 app.include_router(reports.router)
 
 
+
 # --- Health -----------------------------------------------------------------
-from sqlalchemy import text
-from src.db.database import async_session as _async_session
-
-
 @app.get("/api/health", tags=["health"])
 async def health_check():
     """Health check with database connectivity verification."""

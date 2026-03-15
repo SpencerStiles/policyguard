@@ -10,7 +10,10 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
+
+if TYPE_CHECKING:
+    from src.models.models import Client
 
 import bcrypt
 from fastapi import Depends, HTTPException, status
@@ -134,7 +137,7 @@ async def verify_client_ownership(
     client_id: str,
     user_id: str,
     db: AsyncSession,
-) -> "Client":
+) -> Client:
     """Return the Client if it belongs to user_id, else raise HTTP 404.
 
     Uses 404 (not 403) to avoid leaking information about resource existence.

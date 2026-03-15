@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from src.core.auth import get_current_user, verify_client_ownership
 from src.db.database import get_db
-from src.models.models import Analysis, Client, User
+from src.models.models import Analysis, User
 from src.schemas import (
     AnalysisCreate,
     AnalysisListOut,

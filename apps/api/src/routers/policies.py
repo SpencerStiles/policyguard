@@ -104,6 +104,7 @@ async def reprocess_policy(
     await db.refresh(policy)
 
     import asyncio
+
     from src.routers.upload import _process_policy_background
     asyncio.create_task(_process_policy_background(policy_id))
 
