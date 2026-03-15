@@ -5,14 +5,21 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+from sqlalchemy import text
 
 from src.config import settings
 from src.core.logging import get_logger, setup_logging
+from src.db.database import async_session as _async_session
 from src.db.database import init_db
 from src.routers import analysis, auth, clients, policies, reports, upload
 
 setup_logging()
 logger = get_logger("policyguard")
+
+limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
@@ -43,6 +50,8 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
 # --- CORS -------------------------------------------------------------------
 app.add_middleware(
@@ -62,7 +71,23 @@ app.include_router(analysis.router)
 app.include_router(reports.router)
 
 
+
 # --- Health -----------------------------------------------------------------
 @app.get("/api/health", tags=["health"])
 async def health_check():
-    return {"status": "healthy", "service": "policyguard-api", "version": "0.1.0"}
+    """Health check with database connectivity verification."""
+    db_ok = False
+    try:
+        async with _async_session() as session:
+            await session.execute(text("SELECT 1"))
+            db_ok = True
+    except Exception as exc:
+        logger.warning("Health check DB ping failed: %s", exc)
+
+    status = "healthy" if db_ok else "degraded"
+    return {
+        "status": status,
+        "service": "policyguard-api",
+        "version": "0.1.0",
+        "database": "ok" if db_ok else "unavailable",
+    }

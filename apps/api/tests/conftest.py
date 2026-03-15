@@ -84,3 +84,27 @@ async def sample_client(authed_client: AsyncClient):
     })
     assert resp.status_code == 201
     return resp.json()
+
+
+@pytest_asyncio.fixture
+async def second_auth_headers(db_session: AsyncSession) -> dict[str, str]:
+    """Create a second test user and return their Authorization headers."""
+    user = User(
+        email="seconduser@example.com",
+        hashed_password=hash_password("testpassword123"),
+        full_name="Second User",
+    )
+    db_session.add(user)
+    await db_session.flush()
+    await db_session.refresh(user)
+    token = create_access_token(user.id)
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest_asyncio.fixture
+async def second_authed_client(client: AsyncClient, second_auth_headers: dict[str, str]):
+    """HTTP test client authenticated as the second user."""
+    client2 = AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+    async with client2 as c:
+        c.headers.update(second_auth_headers)
+        yield c

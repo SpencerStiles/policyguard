@@ -7,9 +7,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.core.auth import get_current_user
+from src.core.auth import get_current_user, verify_client_ownership
 from src.db.database import get_db
-from src.models.models import Analysis, Client
+from src.models.models import Analysis, User
 from src.schemas import (
     AnalysisCreate,
     AnalysisListOut,
@@ -127,9 +127,10 @@ async def get_industry_profiles():
 async def list_analyses(
     client_id: str,
     db: AsyncSession = Depends(get_db),
-    _current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """List all analyses for a client."""
+    await verify_client_ownership(client_id, current_user.id, db)
     stmt = (
         select(Analysis)
         .options(selectinload(Analysis.gaps), selectinload(Analysis.conflicts))
@@ -160,13 +161,11 @@ async def create_analysis(
     data: AnalysisCreate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    _current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """Create and run a new analysis for a client."""
-    # Verify client exists
-    client = await db.get(Client, data.client_id)
-    if not client:
-        raise HTTPException(status_code=404, detail="Client not found")
+    # Verify client exists and is owned by current user
+    await verify_client_ownership(data.client_id, current_user.id, db)
 
     analysis = Analysis(
         client_id=data.client_id,
@@ -208,7 +207,7 @@ async def _run_analysis_background(analysis_id: str, domain_data: dict) -> None:
 async def get_analysis(
     analysis_id: str,
     db: AsyncSession = Depends(get_db),
-    _current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """Get a full analysis with all findings."""
     stmt = (
@@ -226,6 +225,7 @@ async def get_analysis(
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found")
 
+    await verify_client_ownership(analysis.client_id, current_user.id, db)
     return analysis
 
 
@@ -233,10 +233,11 @@ async def get_analysis(
 async def delete_analysis(
     analysis_id: str,
     db: AsyncSession = Depends(get_db),
-    _current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """Delete an analysis."""
     analysis = await db.get(Analysis, analysis_id)
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found")
+    await verify_client_ownership(analysis.client_id, current_user.id, db)
     await db.delete(analysis)

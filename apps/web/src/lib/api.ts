@@ -9,8 +9,38 @@ const BASE = '/api';
 /** Default timeout for API requests (30 seconds — accommodates Render cold starts). */
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-const TOKEN_KEY = 'pg_access_token';
-const REFRESH_KEY = 'pg_refresh_token';
+export const TOKEN_KEY = 'pg_access_token';
+export const REFRESH_KEY = 'pg_refresh_token';
+
+/**
+ * Fetch wrapper with AbortController timeout and consistent AbortError handling.
+ *
+ *   INPUT ──▶ create controller+timer ──▶ fetch ──▶ clearTimeout ──▶ return Response
+ *               │                                        │
+ *             abort()                              AbortError caught
+ *               │                                        │
+ *           on timeout                        throw "Request timed out..."
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(
+        'Request timed out. The server may be warming up — please wait and try again.',
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -40,72 +70,42 @@ let _refreshPromise: Promise<TokenResponse> | null = null;
 /** Exchange email + password for JWT tokens. Uses form-encoding (OAuth2 requirement). */
 export async function loginApi(email: string, password: string): Promise<TokenResponse> {
   const body = new URLSearchParams({ username: email, password });
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-  try {
-    const res = await fetch(`${BASE}/auth/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body,
-      signal: controller.signal,
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(res.status === 401 ? 'Invalid email or password' : `Login failed: ${text}`);
-    }
-    return res.json();
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new Error('Request timed out. The server may be warming up — please wait and try again.');
-    }
-    throw err;
-  } finally {
-    clearTimeout(timer);
+  const res = await fetchWithTimeout(`${BASE}/auth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(res.status === 401 ? 'Invalid email or password' : `Login failed: ${text}`);
   }
+  return res.json();
 }
 
 /** Exchange a refresh token for new access + refresh tokens. */
 export async function refreshApi(refreshToken: string): Promise<TokenResponse> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10_000);
-  try {
-    const res = await fetch(`${BASE}/auth/refresh`, {
+  const res = await fetchWithTimeout(
+    `${BASE}/auth/refresh`,
+    {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refreshToken }),
-      signal: controller.signal,
-    });
-    if (!res.ok) throw new Error('Refresh failed');
-    return res.json();
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new Error('Token refresh timed out. Please log in again.');
-    }
-    throw err;
-  } finally {
-    clearTimeout(timer);
-  }
+    },
+    10_000,
+  );
+  if (!res.ok) throw new Error('Refresh failed');
+  return res.json();
 }
 
 /** Fetch the current user's profile using an explicit token (used at login/restore time). */
 export async function getMeApi(token: string): Promise<UserProfile> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10_000);
-  try {
-    const res = await fetch(`${BASE}/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: controller.signal,
-    });
-    if (!res.ok) throw new Error('Failed to fetch user profile');
-    return res.json();
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new Error('Request timed out. The server may be warming up — please wait and try again.');
-    }
-    throw err;
-  } finally {
-    clearTimeout(timer);
-  }
+  const res = await fetchWithTimeout(
+    `${BASE}/auth/me`,
+    { headers: { Authorization: `Bearer ${token}` } },
+    10_000,
+  );
+  if (!res.ok) throw new Error('Failed to fetch user profile');
+  return res.json();
 }
 
 // ---------------------------------------------------------------------------
@@ -195,16 +195,40 @@ async function request<T>(
 // Auth API (uses request() — normal JSON endpoint)
 // ---------------------------------------------------------------------------
 
-/** Create a new user account. */
+/** Create a new user account with friendly error messages. */
 export async function registerApi(data: {
   email: string;
   password: string;
   full_name?: string;
 }): Promise<UserProfile> {
-  return request<UserProfile>('/auth/register', {
+  const res = await fetchWithTimeout(`${BASE}/auth/register`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
+
+  if (!res.ok) {
+    const text = await res.text();
+    if (res.status === 409) throw new Error('This email is already registered.');
+    if (res.status === 422) {
+      // Parse Pydantic validation errors for human-readable message
+      try {
+        const body = JSON.parse(text);
+        const detail = body?.detail;
+        if (Array.isArray(detail)) {
+          const msg = detail[0]?.msg ?? 'Invalid input.';
+          throw new Error(msg.replace(/^Value error, /i, ''));
+        }
+        if (typeof detail === 'string') throw new Error(detail);
+      } catch (e) {
+        if (e instanceof SyntaxError) throw new Error('Invalid registration data.');
+        throw e;
+      }
+    }
+    throw new Error('Registration failed. Please try again.');
+  }
+
+  return res.json();
 }
 
 // ---------------------------------------------------------------------------

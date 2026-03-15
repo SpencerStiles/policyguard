@@ -10,7 +10,10 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
+
+if TYPE_CHECKING:
+    from src.models.models import Client
 
 import bcrypt
 from fastapi import Depends, HTTPException, status
@@ -128,3 +131,22 @@ async def get_current_user(
         )
 
     return user
+
+
+async def verify_client_ownership(
+    client_id: str,
+    user_id: str,
+    db: AsyncSession,
+) -> Client:
+    """Return the Client if it belongs to user_id, else raise HTTP 404.
+
+    Uses 404 (not 403) to avoid leaking information about resource existence.
+    """
+    from src.models.models import Client  # noqa: PLC0415
+
+    client = await db.get(Client, client_id)
+    # user_id=None means legacy/seed data — accessible by any authenticated user
+    if client is None or (client.user_id is not None and client.user_id != user_id):
+        from fastapi import HTTPException  # noqa: PLC0415
+        raise HTTPException(status_code=404, detail="Client not found")
+    return client
