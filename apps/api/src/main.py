@@ -70,6 +70,25 @@ app.include_router(reports.router)
 
 
 # --- Health -----------------------------------------------------------------
+from sqlalchemy import text
+from src.db.database import async_session as _async_session
+
+
 @app.get("/api/health", tags=["health"])
 async def health_check():
-    return {"status": "healthy", "service": "policyguard-api", "version": "0.1.0"}
+    """Health check with database connectivity verification."""
+    db_ok = False
+    try:
+        async with _async_session() as session:
+            await session.execute(text("SELECT 1"))
+            db_ok = True
+    except Exception:
+        pass
+
+    status = "healthy" if db_ok else "degraded"
+    return {
+        "status": status,
+        "service": "policyguard-api",
+        "version": "0.1.0",
+        "database": "ok" if db_ok else "unavailable",
+    }
