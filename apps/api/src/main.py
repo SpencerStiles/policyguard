@@ -82,8 +82,8 @@ async def health_check():
         async with _async_session() as session:
             await session.execute(text("SELECT 1"))
             db_ok = True
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Health check DB ping failed: %s", exc)
 
     status = "healthy" if db_ok else "degraded"
     return {

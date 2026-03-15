@@ -8,7 +8,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFi
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
-from src.core.auth import get_current_user
+from src.core.auth import get_current_user, verify_client_ownership
 from src.db.database import get_db
 from src.models.models import Client, Policy, User
 from src.schemas import PolicyOut
@@ -43,7 +43,6 @@ async def upload_policy(
     and extract coverage data.
     """
     # Validate client exists and is owned by current user
-    from src.core.auth import verify_client_ownership
     await verify_client_ownership(client_id, current_user.id, db)
 
     # Validate file type
