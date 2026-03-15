@@ -4,6 +4,52 @@ from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
+async def test_user_isolation_list_clients(
+    authed_client: AsyncClient,
+    second_authed_client: AsyncClient,
+    sample_client: dict,
+):
+    """User B should not see User A's clients."""
+    # User A has one client (sample_client)
+    resp_a = await authed_client.get("/api/clients")
+    assert resp_a.status_code == 200
+    assert len(resp_a.json()) == 1
+
+    # User B should see zero clients
+    resp_b = await second_authed_client.get("/api/clients")
+    assert resp_b.status_code == 200
+    assert resp_b.json() == []
+
+
+@pytest.mark.asyncio
+async def test_user_isolation_get_client(
+    authed_client: AsyncClient,
+    second_authed_client: AsyncClient,
+    sample_client: dict,
+):
+    """User B should get 404 when accessing User A's client by ID."""
+    client_id = sample_client["id"]
+    resp = await second_authed_client.get(f"/api/clients/{client_id}")
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_user_isolation_delete_client(
+    authed_client: AsyncClient,
+    second_authed_client: AsyncClient,
+    sample_client: dict,
+):
+    """User B cannot delete User A's client."""
+    client_id = sample_client["id"]
+    resp = await second_authed_client.delete(f"/api/clients/{client_id}")
+    assert resp.status_code == 404
+
+    # Client still exists for User A
+    resp_a = await authed_client.get(f"/api/clients/{client_id}")
+    assert resp_a.status_code == 200
+
+
+@pytest.mark.asyncio
 async def test_list_clients_empty(authed_client: AsyncClient):
     resp = await authed_client.get("/api/clients")
     assert resp.status_code == 200
