@@ -9,13 +9,7 @@ import {
 } from 'react';
 import { useRouter } from 'next/navigation';
 import * as api from '@/lib/api';
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const TOKEN_KEY = 'pg_access_token';
-const REFRESH_KEY = 'pg_refresh_token';
+import { TOKEN_KEY, REFRESH_KEY } from '@/lib/api';
 
 // ---------------------------------------------------------------------------
 // Types
