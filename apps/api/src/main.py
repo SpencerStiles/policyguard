@@ -51,7 +51,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
 # --- CORS -------------------------------------------------------------------
 app.add_middleware(
