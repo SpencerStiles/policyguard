@@ -82,4 +82,9 @@
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-6px); }
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .float { animation: none; }
+    .skeleton { animation: none; background: theme(colors.neutral.200); }
+  }
 }
