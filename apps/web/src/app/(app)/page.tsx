@@ -53,29 +53,29 @@ export default function DashboardPage() {
         <h1 className="font-display text-3xl text-neutral-900">
           {getGreeting()}{firstName ? `, ${firstName}` : ''}.
         </h1>
-        <p className="mt-1.5 text-sm text-neutral-500">
+        <p className="mt-1.5 flex items-center gap-2.5 text-sm text-neutral-500">
           {loading
             ? 'Loading your workspace…'
             : `${clients.length} client${clients.length !== 1 ? 's' : ''} · ${totalPolicies} polic${totalPolicies !== 1 ? 'ies' : 'y'} tracked`}
+          {apiHealthy && !loading && (
+            <span className="inline-flex items-center gap-1 text-xs text-accent-600">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent-500" />
+              API connected
+            </span>
+          )}
         </p>
       </motion.div>
 
-      {/* API Health Banner */}
-      {apiHealthy !== null && (
+      {/* API warming-up banner — only shown when degraded */}
+      {apiHealthy === false && (
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
-          className={`mb-6 flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium ${
-            apiHealthy
-              ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
-              : 'border border-amber-200 bg-amber-50 text-amber-700'
-          }`}
+          className="mb-6 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-700"
         >
           <Activity className="h-4 w-4" />
-          {apiHealthy
-            ? 'API connected'
-            : 'API is warming up — first requests may take a moment'}
+          API is warming up — first requests may take a moment
         </motion.div>
       )}
 
@@ -92,16 +92,16 @@ export default function DashboardPage() {
       {/* Stats */}
       <StaggerContainer className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8" delay={0.1}>
         <FadeUpItem>
-          <StatCard title="Total Clients" value={clients.length} icon={Users} iconBg="bg-blue-100" iconColor="text-blue-600" loading={loading} />
+          <StatCard title="Total Clients" value={clients.length} icon={Users} loading={loading} />
         </FadeUpItem>
         <FadeUpItem>
-          <StatCard title="Total Policies" value={totalPolicies} icon={FileText} iconBg="bg-emerald-100" iconColor="text-emerald-600" loading={loading} />
+          <StatCard title="Total Policies" value={totalPolicies} icon={FileText} loading={loading} />
         </FadeUpItem>
         <FadeUpItem>
-          <StatCard title="Analyses Run" value={0} icon={FlaskConical} iconBg="bg-violet-100" iconColor="text-violet-600" loading={loading} dash />
+          <StatCard title="Analyses Run" value={0} icon={FlaskConical} loading={loading} dash />
         </FadeUpItem>
         <FadeUpItem>
-          <StatCard title="Gaps Found" value={0} icon={AlertTriangle} iconBg="bg-amber-100" iconColor="text-amber-600" loading={loading} dash />
+          <StatCard title="Gaps Found" value={0} icon={AlertTriangle} loading={loading} dash />
         </FadeUpItem>
       </StaggerContainer>
 
@@ -174,16 +174,12 @@ function StatCard({
   title,
   value,
   icon: Icon,
-  iconBg,
-  iconColor,
   loading,
   dash,
 }: {
   title: string;
   value: number;
   icon: React.ComponentType<{ className?: string }>;
-  iconBg: string;
-  iconColor: string;
   loading?: boolean;
   dash?: boolean;
 }) {
@@ -196,9 +192,7 @@ function StatCard({
       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
     >
       <div className="flex items-center gap-4">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${iconBg}`}>
-          <Icon className={`h-5 w-5 ${iconColor}`} />
-        </div>
+        <Icon className="h-5 w-5 text-neutral-400 shrink-0" />
         <div>
           <p className="text-sm font-medium text-neutral-500">{title}</p>
           <p className="mt-0.5 text-2xl font-bold tabular text-neutral-900">

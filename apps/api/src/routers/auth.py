@@ -26,7 +26,7 @@ from src.models.models import User
 
 logger = logging.getLogger("policyguard.auth_router")
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix="/api/auth", tags=["auth"])
 limiter = Limiter(key_func=get_remote_address)
 
 # ---------------------------------------------------------------------------
